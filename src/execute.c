@@ -76,6 +76,7 @@ static int run_pipeline(int begin,int end,int background,const char *line) {
     }
     if(prev!=-1)close(prev);
     if(background) {
+        /* Do not block on background children; the next prompt reaps them. */
         for(int i=0;i<nchild;i++) if(njobs<MAXJOBS) {jobs[njobs].pid=children[i];jobs[njobs].cmd=strdup(line);njobs++;}
         printf("[background] %ld\n",(long)last);return 0;
     }
