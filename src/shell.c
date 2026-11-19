@@ -22,6 +22,7 @@ static void add_cmd(const char *cmd) {
 int shell_loop(void) {
     char *line = NULL; size_t cap = 0;
     while (1) {
+        reap_jobs();
         if (isatty(STDIN_FILENO)) {
             free(line); line=readline("myshell$ ");
             if (!line) break;
@@ -52,7 +53,7 @@ int shell_loop(void) {
             continue;
         }
         if (!strcmp(line,"help")) { puts("Built-ins: exit, cd, help, jobs, history"); continue; }
-        if (!strcmp(line,"jobs")) { puts("Job control not yet implemented."); continue; }
+        if (!strcmp(line,"jobs")) { print_jobs(); continue; }
         if (*line) execute_line(line);
     }
     free(line); for(int i=0;i<count;i++) free(history[i]); return 0;
