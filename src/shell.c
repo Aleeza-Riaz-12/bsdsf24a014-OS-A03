@@ -5,6 +5,13 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#if __has_include(<readline/readline.h>)
+#include <readline/readline.h>
+#include <readline/history.h>
+#else
+extern char *readline(const char *);
+extern void add_history(const char *);
+#endif
 #define HISTORY_SIZE 100
 static char *history[HISTORY_SIZE];
 static int count=0;
@@ -15,9 +22,15 @@ static void add_cmd(const char *cmd) {
 int shell_loop(void) {
     char *line = NULL; size_t cap = 0;
     while (1) {
-        if (isatty(STDIN_FILENO)) { fputs("myshell$ ", stdout); fflush(stdout); }
-        if (getline(&line, &cap, stdin) < 0) break;
-        line[strcspn(line,"\n")] = 0;
+        if (isatty(STDIN_FILENO)) {
+            free(line); line=readline("myshell$ ");
+            if (!line) break;
+            cap=strlen(line)+1;
+        } else {
+            if (getline(&line, &cap, stdin) < 0) break;
+            line[strcspn(line,"\n")] = 0;
+        }
+        if (*line) add_history(line);
         if (line[0]=='!' && line[1]) {
             char *end; long n=strtol(line+1,&end,10);
             if (*end || n<1 || n>count) {fprintf(stderr,"history: invalid event\n");continue;}

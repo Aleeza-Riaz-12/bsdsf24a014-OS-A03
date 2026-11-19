@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -std=c11 -Wall -Wextra -Wpedantic -g -Iinclude
-LDFLAGS =
+LDFLAGS = $(shell test -e /usr/lib/x86_64-linux-gnu/libreadline.so && echo -lreadline || echo -l:libreadline.so.8)
 SRC = src/main.c src/shell.c src/execute.c
 BIN = bin/myshell
 all: $(BIN)
