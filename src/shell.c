@@ -19,17 +19,31 @@ static void add_cmd(const char *cmd) {
     if (count==HISTORY_SIZE) { free(history[0]); memmove(history,history+1,(HISTORY_SIZE-1)*sizeof(char*)); count--; }
     history[count++]=strdup(cmd);
 }
+static int read_input(char **line,size_t *cap,const char *prompt) {
+    if(isatty(STDIN_FILENO)) {free(*line);*line=readline(prompt);if(!*line)return 0;*cap=strlen(*line)+1;}
+    else {if(getline(line,cap,stdin)<0)return 0;(*line)[strcspn(*line,"\n")]=0;}
+    return 1;
+}
+static int run_if(const char *condition,char **line,size_t *cap) {
+    int success=(execute_line(condition)==0), mode=0, result=0;
+    while(read_input(line,cap,"if> ")) {
+        if(!strcmp(*line,"then")){mode=1;continue;}
+        if(!strcmp(*line,"else")){mode=2;continue;}
+        if(!strcmp(*line,"fi"))return result;
+        if(mode==0){fprintf(stderr,"if: expected then\n");return 2;}
+        if((success && mode==1)||(!success && mode==2))result=execute_line(*line);
+    }
+    fprintf(stderr,"if: missing fi\n");return 2;
+}
 int shell_loop(void) {
     char *line = NULL; size_t cap = 0;
     while (1) {
         reap_jobs();
-        if (isatty(STDIN_FILENO)) {
-            free(line); line=readline("myshell$ ");
-            if (!line) break;
-            cap=strlen(line)+1;
-        } else {
-            if (getline(&line, &cap, stdin) < 0) break;
-            line[strcspn(line,"\n")] = 0;
+        if (!read_input(&line,&cap,"myshell$ ")) break;
+        if (!strncmp(line,"if ",3)) {
+            char *condition=strdup(line+3);
+            if(condition){run_if(condition,&line,&cap);free(condition);}
+            continue;
         }
         if (*line) add_history(line);
         if (line[0]=='!' && line[1]) {
