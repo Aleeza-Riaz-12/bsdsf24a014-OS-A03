@@ -21,9 +21,35 @@ void reap_jobs(void) {
     }
 }
 void print_jobs(void) {reap_jobs();for(int i=0;i<njobs;i++) printf("[%d] %ld %s\n",i+1,(long)jobs[i].pid,jobs[i].cmd);}
+typedef struct Var {char *key,*value;struct Var *next;} Var;
+static Var *variables;
+static const char *lookup(const char *key) {
+    for(Var *v=variables;v;v=v->next)if(!strcmp(v->key,key))return v->value;
+    const char *env=getenv(key);return env?env:"";
+}
+int assign_variable(const char *line) {
+    const char *eq=strchr(line,'=');if(!eq || eq==line)return 0;
+    for(const char *p=line;p<eq;p++)if(!(isalnum((unsigned char)*p)||*p=='_'))return 0;
+    if(isdigit((unsigned char)line[0]))return 0;
+    char *key=strndup(line,eq-line);if(!key)return 0;
+    const char *raw=eq+1;size_t n=strlen(raw);
+    char *value=(n>=2 && ((*raw=='"'&&raw[n-1]=='"')||(*raw=='\''&&raw[n-1]=='\'')))?strndup(raw+1,n-2):strdup(raw);
+    if(!value){free(key);return 0;}
+    Var *v=variables;while(v && strcmp(v->key,key))v=v->next;
+    if(!v){v=calloc(1,sizeof(*v));if(!v){free(key);free(value);return 0;}v->key=key;v->next=variables;variables=v;}
+    else {free(key);free(v->value);}
+    v->value=value;return 1;
+}
+void print_variables(void){for(Var *v=variables;v;v=v->next)printf("%s=%s\n",v->key,v->value);}
+void free_variables(void){while(variables){Var *v=variables;variables=v->next;free(v->key);free(v->value);free(v);}}
 static char *tokens[MAXTOK];static int nt;
 static void clear_tokens(void) {for(int i=0;i<nt;i++)free(tokens[i]);nt=0;}
-static int put_token(const char *s,size_t n) {if(nt>=MAXTOK-1)return -1;tokens[nt++]=strndup(s,n);return tokens[nt-1]?0:-1;}
+static int put_token(const char *s,size_t n) {
+    if(nt>=MAXTOK-1)return -1;
+    char *raw=strndup(s,n);if(!raw)return -1;
+    if(raw[0]=='$' && raw[1]){char *expanded=strdup(lookup(raw+1));free(raw);raw=expanded;}
+    tokens[nt++]=raw;return raw?0:-1;
+}
 static int tokenize(const char *line) {
     clear_tokens();const char *p=line;
     while(*p) {
