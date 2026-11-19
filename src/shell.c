@@ -68,7 +68,19 @@ int shell_loop(void) {
             if (!dir || chdir(dir)) perror("cd");
             continue;
         }
-        if (!strcmp(line,"help")) { puts("Built-ins: exit, cd, help, jobs, history, set"); continue; }
+        if (!strcmp(line, "help")) {
+    puts("========== MyShell Help ==========");
+    puts("exit          - Exit the shell");
+    puts("cd <dir>      - Change directory");
+    puts("help          - Display this help message");
+    puts("jobs          - List background jobs");
+    puts("history       - Show command history");
+    puts("!n            - Execute history command number n");
+    puts("set           - Display shell variables");
+    puts("NAME=value    - Assign a shell variable");
+    puts("==================================");
+    continue;
+}
         if (!strcmp(line,"jobs")) { print_jobs(); continue; }
         if (*line) execute_line(line);
     }
