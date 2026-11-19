@@ -59,6 +59,8 @@ int shell_loop(void) {
             for(int i=0;i<count;i++) printf("%d %s\n",i+1,history[i]);
             continue;
         }
+        if (assign_variable(line)) continue;
+        if (!strcmp(line,"set")) {print_variables();continue;}
         if (!strcmp(line,"exit")) break;
         if (!strncmp(line,"cd",2) && (line[2]==0 || line[2]==' ')) {
             char *dir=line+2; while (*dir==' ') dir++;
@@ -66,9 +68,9 @@ int shell_loop(void) {
             if (!dir || chdir(dir)) perror("cd");
             continue;
         }
-        if (!strcmp(line,"help")) { puts("Built-ins: exit, cd, help, jobs, history"); continue; }
+        if (!strcmp(line,"help")) { puts("Built-ins: exit, cd, help, jobs, history, set"); continue; }
         if (!strcmp(line,"jobs")) { print_jobs(); continue; }
         if (*line) execute_line(line);
     }
-    free(line); for(int i=0;i<count;i++) free(history[i]); return 0;
+    free(line); for(int i=0;i<count;i++) free(history[i]); free_variables(); return 0;
 }
